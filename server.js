@@ -19,7 +19,7 @@ function handle(ws,m){
  if(m.t==='create'){
   const min=Math.min(30,Math.max(1,(m.min|0)||5)),inc=Math.min(30,Math.max(0,m.inc|0));
   const c=m.col==='w'||m.col==='b'?m.col:(rnd(2)?'w':'b'),code=newCode(),token=tok();
-  const rm={code,min,inc,g:null,p:{w:null,b:null},last:Date.now(),over:false,sc:{1:0,2:0,d:0},chat:[],draw:null,rq:null,cool:{w:false,b:false}};
+  const rm={code,min,inc,alko:!!m.alko,g:null,p:{w:null,b:null},last:Date.now(),over:false,sc:{1:0,2:0,d:0},chat:[],draw:null,rq:null,cool:{w:false,b:false}};
   rooms.set(code,rm);rm.p[c]={token,ws:null,id:'1'};seat(ws,rm,c,token,true)}
  else if(m.t==='join'){
   const rm=rooms.get(String(m.code||'').toUpperCase());
@@ -27,7 +27,7 @@ function handle(ws,m){
   const c=!rm.p.w?'w':!rm.p.b?'b':null;
   if(!c)return send(ws,{t:'err',m:'Комната занята',fatal:1});
   const token=tok();rm.p[c]={token,ws:null,id:'2'};seat(ws,rm,c,token,false);
-  rm.g=H.create(rm.min,rm.inc);push(rm);opp(rm,c,true)}   // часы стартуют только здесь, когда зашёл второй игрок
+  rm.g=H.create(rm.min,rm.inc,rm.alko);push(rm);opp(rm,c,true)}   // часы стартуют только здесь, когда зашёл второй игрок
  else if(m.t==='resume'){
   const rm=rooms.get(String(m.code||'')),c=rm&&['w','b'].find(x=>rm.p[x]&&rm.p[x].token===m.token);
   if(!c)return send(ws,{t:'err',m:'Сессия не найдена',fatal:1});
@@ -43,7 +43,7 @@ function handle(ws,m){
    if(!rm.over)return;
    if(rm.rq&&rm.rq!==ws.pid){            // оба согласны: меняем цвета и стартуем заново
     rm.p={w:rm.p.b,b:rm.p.w};['w','b'].forEach(x=>{if(rm.p[x].ws)rm.p[x].ws.c=x});
-    rm.g=H.create(rm.min,rm.inc);rm.over=false;rm.rq=null;rm.draw=null;rm.cool={w:false,b:false}}
+    rm.g=H.create(rm.min,rm.inc,rm.alko);rm.over=false;rm.rq=null;rm.draw=null;rm.cool={w:false,b:false}}
    else rm.rq=ws.pid;
    return push(rm)}
   if(rm.over)return;
@@ -69,3 +69,4 @@ setInterval(()=>rooms.forEach((rm,code)=>{
 setInterval(()=>rooms.forEach(rm=>{if(rm.g&&!rm.over){const t=H.time(rm.g);['w','b'].forEach(c=>rm.p[c]&&send(rm.p[c].ws,{t:'clk',time:t}))}}),2000);
 setInterval(()=>wss.clients.forEach(w=>{if(!w.isAlive)return w.terminate();w.isAlive=false;w.ping()}),30000);
 const PORT=process.env.PORT||3000;srv.listen(PORT,()=>console.log('http://localhost:'+PORT));
+
