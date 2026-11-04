@@ -2,11 +2,11 @@
 const fs=require('fs'),vm=require('vm'),path=require('path');
 const SRC=fs.readFileSync(path.join(__dirname,'game.js'),'utf8');
 const st=g=>vm.runInContext('S',g);
-exports.create=(min,inc)=>{
+exports.create=(min,inc,alko)=>{
  const g=vm.createContext({document:{addEventListener(){},getElementById(){return null},querySelectorAll(){return[]}}});
  vm.runInContext(SRC,g);
  vm.runInContext('render=function(){};clk=function(){};',g);
- vm.runInContext(`CFG.min=${min|0};CFG.inc=${inc|0};init(null);`,g);
+ vm.runInContext(`CFG.min=${min|0};CFG.inc=${inc|0};CFG.alko=${alko?1:0};init(null);`,g);
  return g};
 exports.tick=g=>g.tick();
 exports.over=g=>!!st(g).over;
@@ -32,3 +32,4 @@ exports.act=(g,color,m)=>{
  S.sel=null;S.mv=[];S.tg=null;return null};
 exports.result=g=>st(g).over;
 exports.end=(g,w,msg)=>{const S=st(g);if(S.over)return;S.over=w;S.msg=msg;S.log.push(msg)};
+
