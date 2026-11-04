@@ -16,38 +16,40 @@ reinforce:{n:'Подкрепление',d:'Новая пешка на свобо
 blizzard:{n:'Метель',d:'До 3 случайных вражеских фигур (без короля) не ходят на следующем ходу',t:null},
 gamble:{n:'Азарт',d:'50%: два хода подряд, 50%: вы теряете ход',t:null}};
 const KEYS=Object.keys(CARDS),NM={w:'Белые',b:'Чёрные'};
-let S;const CFG={min:5,inc:3,lvl:3,col:'r'};const LV=[null,{d:1,n:250,r:.45,c:.1},{d:1,n:120,r:.25,c:.15},{d:1,n:50,r:.1,c:.25},{d:2,n:60,r:.06,c:.3},{d:2,n:20,r:.02,c:.35},{d:3,n:25,r:.02,c:.4},{d:3,n:8,r:0,c:.4},{d:3,n:0,r:0,c:.4}];
+let S;const CFG={min:5,inc:3,lvl:3,col:'r',alko:false};const LV=[null,{d:1,n:250,r:.45,c:.1},{d:1,n:120,r:.25,c:.15},{d:1,n:50,r:.1,c:.25},{d:2,n:60,r:.06,c:.3},{d:2,n:20,r:.02,c:.35},{d:3,n:25,r:.02,c:.4},{d:3,n:8,r:0,c:.4},{d:3,n:0,r:0,c:.4}];
 function init(me){
  const row='RNBQKBNR',b=[];
  for(let r=0;r<8;r++)b.push(Array(8).fill(null));
  for(let c=0;c<8;c++){b[0][c]={t:row[c],c:'b',f:0,s:0};b[1][c]={t:'P',c:'b',f:0,s:0};b[6][c]={t:'P',c:'w',f:0,s:0};b[7][c]={t:row[c],c:'w',f:0,s:0}}
- S={b,me:me||null,ep:null,cap:{w:[],b:[]},time:{w:CFG.min*60,b:CFG.min*60},inc:CFG.inc,lvl:CFG.lvl,rr:{w:3,b:3},t0:Date.now(),turn:'w',left:1,played:false,sel:null,mv:[],tg:null,over:null,hand:{w:[],b:[]},log:['Партия началась']};
+ S={b,me:me||null,ep:null,cap:{w:[],b:[]},time:{w:CFG.min*60,b:CFG.min*60},inc:CFG.inc,lvl:CFG.lvl,rr:{w:3,b:3},alko:!!CFG.alko,map:null,nt:0,t0:Date.now(),turn:'w',left:1,played:false,sel:null,mv:[],tg:null,over:null,hand:{w:[],b:[]},log:['Партия началась']};
  draw();render();
 }
 function draw(){const h=S.hand[S.turn];if(h.length<3)h.push(KEYS[Math.floor(Math.random()*KEYS.length)])}
 function moves(r,c){
- const p=S.b[r][c],out=[];if(p.f)return out;
+ const p=S.b[r][c],out=[],k=mv(p);if(p.f)return out;
  const add=(y,x,m)=>{if(y<0||y>7||x<0||x>7)return false;const q=S.b[y][x];
   if(!q){if(m!=='c')out.push([y,x]);return true}
   if(q.c!==p.c&&!q.s&&q.t!=='K'&&m!=='m')out.push([y,x]);return false};
  if(p.t==='P'){const d=p.c==='w'?-1:1,st=p.c==='w'?6:1;
   if(add(r+d,c,'m')&&r===st)add(r+2*d,c,'m');add(r+d,c-1,'c');add(r+d,c+1,'c');if(S.ep&&S.ep[0]===r+d&&Math.abs(S.ep[1]-c)===1){const v=S.b[r][S.ep[1]];if(v&&v.t==='P'&&v.c!==p.c&&!v.s)out.push([r+d,S.ep[1],'ep'])}}
- else if(p.t==='N')[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]].forEach(([a,e])=>add(r+a,c+e));
- else{const D=[];if(p.t!=='B')D.push([1,0],[-1,0],[0,1],[0,-1]);if(p.t!=='R')D.push([1,1],[1,-1],[-1,1],[-1,-1]);
-  D.forEach(([a,e])=>{let y=r+a,x=c+e;while(add(y,x)){if(p.t==='K')break;y+=a;x+=e}})}
- if(p.t==='K'&&!p.m&&c===4&&r===(p.c==='w'?7:0)){const e=p.c==='w'?'b':'w',R=x=>{const q=S.b[r][x];return q&&q.t==='R'&&q.c===p.c&&!q.m&&!q.f};
+ else if(k==='N')[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]].forEach(([a,e])=>add(r+a,c+e));
+ else{const D=[];if(k!=='B')D.push([1,0],[-1,0],[0,1],[0,-1]);if(k!=='R')D.push([1,1],[1,-1],[-1,1],[-1,-1]);
+  D.forEach(([a,e])=>{let y=r+a,x=c+e;while(add(y,x)){if(k==='K')break;y+=a;x+=e}})}
+ if(!S.alko&&p.t==='K'&&!p.m&&c===4&&r===(p.c==='w'?7:0)){const e=p.c==='w'?'b':'w',R=x=>{const q=S.b[r][x];return q&&q.t==='R'&&q.c===p.c&&!q.m&&!q.f};
   if(!attacked(r,4,e)){
    if(R(7)&&!S.b[r][5]&&!S.b[r][6]&&!attacked(r,5,e)&&!attacked(r,6,e))out.push([r,6,'cs']);
    if(R(0)&&!S.b[r][1]&&!S.b[r][2]&&!S.b[r][3]&&!attacked(r,2,e)&&!attacked(r,3,e))out.push([r,2,'cl'])}}
  return out}
+function mv(p){return S.alko&&S.map&&p.t!=='P'?S.map[p.t]:p.t}
 function attacked(r,c,col){
  for(let y=0;y<8;y++)for(let x=0;x<8;x++){const p=S.b[y][x];if(!p||p.c!==col||p.f)continue;
   const dy=r-y,dx=c-x,ay=Math.abs(dy),ax=Math.abs(dx);
-  if(p.t==='P'){if(dy===(col==='w'?-1:1)&&ax===1)return true}
-  else if(p.t==='N'){if(ay*ax===2)return true}
-  else if(p.t==='K'){if(Math.max(ay,ax)===1)return true}
+  const k=mv(p);
+  if(k==='P'){if(dy===(col==='w'?-1:1)&&ax===1)return true}
+  else if(k==='N'){if(ay*ax===2)return true}
+  else if(k==='K'){if(Math.max(ay,ax)===1)return true}
   else{const dg=ay===ax&&ay>0,st=(ay===0)!==(ax===0);
-   if((dg&&p.t!=='R')||(st&&p.t!=='B')){const sy=Math.sign(dy),sx=Math.sign(dx);let a=y+sy,b=x+sx;while((a!==r||b!==c)&&!S.b[a][b]){a+=sy;b+=sx}if(a===r&&b===c)return true}}}
+   if((dg&&k!=='R')||(st&&k!=='B')){const sy=Math.sign(dy),sx=Math.sign(dx);let a=y+sy,b=x+sx;while((a!==r||b!==c)&&!S.b[a][b]){a+=sy;b+=sx}if(a===r&&b===c)return true}}}
  return false}
 function inCheck(col){for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=S.b[r][c];if(p&&p.t==='K'&&p.c===col)return attacked(r,c,col==='w'?'b':'w')}return false}
 function safe(r,c,m){const p=S.b[r][c],t=S.b[m[0]][m[1]];let ep=null;S.b[m[0]][m[1]]=p;S.b[r][c]=null;
@@ -55,7 +57,7 @@ function safe(r,c,m){const p=S.b[r][c],t=S.b[m[0]][m[1]];let ep=null;S.b[m[0]][m
  const ok=!inCheck(p.c);S.b[r][c]=p;S.b[m[0]][m[1]]=t;if(ep)S.b[r][m[1]]=ep;return ok}
 function legal(r,c){return moves(r,c).filter(m=>safe(r,c,m))}
 function canMove(){for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=S.b[r][c];if(p&&p.c===S.turn&&legal(r,c).length)return true}return false}
-function endTurn(){S.time[S.turn]+=S.inc||0;
+function endTurn(){S.time[S.turn]+=S.inc||0;if(S.alko&&!S.map&&++S.nt>=2)alkoOn();
  S.b.flat().forEach(p=>{if(p&&p.c===S.turn){if(p.f)p.f--;if(p.s)p.s--}});
  S.turn=S.turn==='w'?'b':'w';S.left=1;S.played=false;S.sel=null;S.mv=[];S.tg=null;draw();
  if(!canMove()){if(inCheck(S.turn)){S.over=S.turn==='w'?'b':'w';S.log.push('Мат!')}else{S.over='draw';S.log.push('Пат')}}
@@ -86,10 +88,19 @@ function extra(k){const c=S.turn,o=c==='w'?'b':'w',a=S.b.flat().filter(Boolean);
  else if(k==='blizzard'){const e=a.filter(p=>p.c===o&&p.t!=='K');for(let n=0;n<3&&e.length;n++)e.splice(Math.floor(Math.random()*e.length),1)[0].f=1}
  else if(k==='revive'){const t=rnd(S.cap[c].filter(x=>home(c,x).length)),s=rnd(home(c,t));S.cap[c].splice(S.cap[c].indexOf(t),1);S.b[s[0]][s[1]]={t,c,f:0,s:0,m:1}}
  else if(k==='gamble'){if(Math.random()<.5){S.left=2;S.log.push('Азарт: повезло! Два хода')}else{S.log.push('Азарт: не повезло, ход потерян');endTurn()}}}
+const ALN={N:'конь',B:'слон',R:'ладья',Q:'ферзь',K:'король'};
+function alkoOn(){const T=['N','B','R','Q','K'];
+ for(let n=0;n<60;n++){const a=T.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+  if(a.some((v,i)=>v===T[i]))continue;const m={};T.forEach((t,i)=>m[t]=a[i]);S.map=m;
+  if(!inCheck('w')&&!inCheck('b')&&allM('w').length&&allM('b').length)break}
+ if(!S.map)S.map={N:'B',B:'R',R:'Q',Q:'K',K:'N'};
+ S.log.push('🍸 Алко! Фигуры начали ходить по-новому')}
+function amHTML(){if(!S.alko)return '';if(!S.map)return '🍸 Алко: после первых ходов обеих сторон фигуры начнут ходить по-новому (пешки не меняются, рокировки нет)';
+ return '🍸 <b>Алко:</b> '+Object.keys(S.map).map(t=>ALN[t]+' → как '+ALN[S.map[t]]).join(' · ')}
 function okT(q){if(S.tg===null||!q)return false;const t=CARDS[S.hand[S.turn][S.tg]].t;
  return t==='e'?q.c!==S.turn&&q.t!=='K':t==='o'?q.c===S.turn&&q.t!=='K':t==='p'?q.c===S.turn&&q.t==='P':t==='v'?q.c!==S.turn&&q.t==='P'&&!q.s:t==='d'?q.c!==S.turn&&(q.t==='Q'||q.t==='R'):false}
 function click(r,c){
- if(S.over||S.pr||S.menu||bt())return;const q=S.b[r][c];
+ if(S.over||S.pr||S.menu||S.idle||bt())return;const q=S.b[r][c];
  if(S.tg!==null){if(!okT(q))return;
   const k=S.hand[S.turn][S.tg];
   if(k==='freeze'){q.f=2}else if(k==='shield'){q.s=2}else if(k==='mutate'){q.t=Math.random()<.5?'N':'B'}else if(k==='recruit'){q.c=S.turn;q.f=0;q.s=0}else if(k==='demote'){const od=q.t;q.t=Math.random()<.5?'N':'B';if(inCheck(S.turn)){q.t=od;S.log.push('Ослабление открыло бы шах вашему королю — выберите другую цель');return render()}}
@@ -127,17 +138,17 @@ function render(){
   if(okT(q))d.classList.add('tg');
   if(q)d.innerHTML='<span class="'+q.c+'">'+G[q.t]+'</span>'+(q.f?'<i>❄</i>':'')+(q.s?'<i class="r">🛡</i>':'');
   d.onclick=()=>click(r,c);B.appendChild(d)}
- document.getElementById('st').textContent=S.over==='draw'?'Пат — ничья':S.over?(S.tm?'Время вышло! ':'Мат! ')+'Победили: '+NM[S.over]+' 🎉':'Ход: '+NM[S.turn]+(inCheck(S.turn)?' · ШАХ!':'')+' · ходов осталось: '+S.left;
+ document.getElementById('st').textContent=S.msg?S.msg:S.over==='draw'?'Пат — ничья':S.over?(S.tm?'Время вышло! ':'Мат! ')+'Победили: '+NM[S.over]+' 🎉':'Ход: '+NM[S.turn]+(inCheck(S.turn)?' · ШАХ!':'')+' · ходов осталось: '+S.left;
  const V=S.me||S.turn,o=V==='w'?'b':'w';
  document.getElementById('hs').innerHTML=S.hand[V].map((k,i)=>'<button class="card'+(S.tg===i?' on':'')+'" '+(S.played||S.over||S.pr||bt()||!usable(k)?'disabled':'')+' onclick="play('+i+')"><b>'+CARDS[k].n+'</b><small>'+CARDS[k].d+(bt()||usable(k)?'':inCheck(S.turn)&&k!=='double'?' — недоступно под шахом':' — нет подходящей цели')+'</small></button>').join('')+'<button class="n rr" onclick="reroll()" '+(bt()||S.over||S.pr||!S.rr[V]||!S.hand[V].length?'disabled':'')+'>Заменить все карты ('+S.rr[V]+' из 3)</button><div class="rl">Карт у соперника: '+S.hand[o].length+'</div>';
- clk();document.getElementById('mn').innerHTML=S.menu?menuHTML():'';mSync();document.getElementById('pr').innerHTML=S.pr?'<div class="rl">Превращение пешки — выберите фигуру:</div><div class="pc">'+['Q','R','B','N'].map(t=>'<button class="n pb" onclick="promote(\''+t+'\')"><span class="'+S.turn+'">'+G[t]+'</span></button>').join('')+'</div>':'';
+ clk();document.getElementById('am').innerHTML=amHTML();document.getElementById('mn').innerHTML=S.menu?menuHTML():'';mSync();document.getElementById('pr').innerHTML=S.pr&&!bt()?'<div class="rl">Превращение пешки — выберите фигуру:</div><div class="pc">'+['Q','R','B','N'].map(t=>'<button class="n pb" onclick="promote(\''+t+'\')"><span class="'+S.turn+'">'+G[t]+'</span></button>').join('')+'</div>':'';
  document.getElementById('log').innerHTML=S.log.slice(-4).map(x=>'• '+x).join('<br>')}
 function fmt(t){t=Math.max(0,Math.ceil(t));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')}
 function clk(){document.getElementById('clk').innerHTML=['w','b'].map(c=>'<div class="ck'+(S.turn===c&&!S.over?' on':'')+(S.time[c]<10?' lo':'')+'">'+NM[c]+(S.me&&c!==S.me?' (бот)':'')+'<b>'+fmt(S.time[c])+'</b></div>').join('')}
-function tick(){if(!S||S.over||S.menu)return;const n=Date.now(),d=(n-S.t0)/1000;S.t0=n;S.time[S.turn]-=d;if(S.time[S.turn]<=0){S.time[S.turn]=0;S.over=S.turn==='w'?'b':'w';S.tm=1;S.log.push('Время вышло у: '+NM[S.turn]);return render()}clk()}
+function tick(){if(!S||S.over||S.menu||S.idle||S.wait)return;const n=Date.now(),d=(n-S.t0)/1000;S.t0=n;S.time[S.turn]-=d;if(S.time[S.turn]<=0){S.time[S.turn]=0;S.over=S.turn==='w'?'b':'w';S.tm=1;S.log.push('Время вышло у: '+NM[S.turn]);return render()}clk()}
 const VAL={P:100,N:320,B:330,R:500,Q:900,K:0};
 function bt(){return !S.bz&&!!S.me&&S.turn!==S.me&&!S.over}
-function ev(me){let s=0;for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=S.b[r][c];if(!p)continue;let v=VAL[p.t]*(p.f?.6:1);if(p.t==='P')v+=(p.c==='w'?6-r:r-1)*6;else if(p.t!=='K'&&p.t!=='R')v+=12-Math.abs(3.5-r)*2-Math.abs(3.5-c)*2;s+=p.c===me?v:-v}return s}
+function ev(me){let s=0;for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=S.b[r][c];if(!p)continue;let v=(p.t==='K'?0:VAL[mv(p)]||250)*(p.f?.6:1);if(p.t==='P')v+=(p.c==='w'?6-r:r-1)*6;else if(p.t!=='K'&&p.t!=='R')v+=12-Math.abs(3.5-r)*2-Math.abs(3.5-c)*2;s+=p.c===me?v:-v}return s}
 function allM(col){const o=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=S.b[r][c];if(p&&p.c===col)legal(r,c).forEach(m=>o.push([r,c,m]))}return o}
 function ap(r,c,m){const p=S.b[r][c],t=S.b[m[0]][m[1]],pr=p.t;let x=null,ro=null;
  if(m[2]==='ep'){x=S.b[r][m[1]];S.b[r][m[1]]=null}
@@ -194,16 +205,20 @@ function menuHTML(){
  <div class="mr"><span>Добавление секунд на ход</span><b id="vi">${CFG.inc}</b></div>
  <input type="range" id="si" min="0" max="30" value="${CFG.inc}" oninput="setCfg('inc',+this.value)">
  <div class="pre">${P.map(([m,i])=>`<button id="p${m}_${i}" onclick="setCfg('pre',[${m},${i}])">${m}+${i}</button>`).join('')}</div>
+ <label class="ak"><input type="checkbox" id="ak" onchange="setCfg('alko',this.checked)"><span>🍸 Модификатор «Алко»: после первых ходов фигуры начинают ходить по-другому</span></label>
  <div class="lb">Сложность бота</div>
  <div class="seg">${[1,2,3,4,5,6,7,8].map(n=>`<button id="l${n}" onclick="setCfg('lvl',${n})">${n}</button>`).join('')}</div>
  <div class="lb" id="ld" style="font-weight:400;opacity:.75"></div>
  <div class="lb">Сторона</div>
  <div class="tiles">${[['w','Белые'],['r','Случайный цвет'],['b','Чёрные']].map(([c,t])=>`<button class="ct" id="c${c}" onclick="setCfg('col','${c}')"><span class="kg ${c}">${G.K}</span>${t}</button>`).join('')}</div>
  <button class="n" onclick="go(1)">Сыграть с ботом</button>
- <button class="n alt" onclick="go(0)">Играть вдвоём (без бота)</button></div>`}
+ <button class="n alt" onclick="go(0)">Играть вдвоём (без бота)</button>
+ <div class="lb">Онлайн с другом</div>
+ <button class="n" onclick="mk()">Создать комнату (время и цвет — как выше)</button>
+ <div class="jn"><input id="jc" placeholder="Код комнаты" maxlength="4"><button class="n" onclick="jn()">Войти</button></div></div>`}
 function setCfg(k,v){if(k==='pre'){CFG.min=v[0];CFG.inc=v[1]}else CFG[k]=v;mSync()}
 function mSync(){const $=id=>document.getElementById(id);if(!$('vm'))return;
- $('vm').textContent=CFG.min;$('vi').textContent=CFG.inc;$('sm').value=CFG.min;$('si').value=CFG.inc;
+ $('ak').checked=!!CFG.alko;$('vm').textContent=CFG.min;$('vi').textContent=CFG.inc;$('sm').value=CFG.min;$('si').value=CFG.inc;
  document.querySelectorAll('.pre button').forEach(b=>b.classList.toggle('on',b.id==='p'+CFG.min+'_'+CFG.inc));
  for(let n=1;n<=8;n++)$('l'+n).classList.toggle('on',n===CFG.lvl);
  ['w','r','b'].forEach(c=>$('c'+c).classList.toggle('on',CFG.col===c));
